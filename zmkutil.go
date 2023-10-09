@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	SingleLengthZMKSize = 8
-	DoubleLengthZMKSize = 16
+	SingleLengthZMKSize = des.BlockSize
+	DoubleLengthZMKSize = des.BlockSize * 2
 )
 
 // SingleLengthZMK represents a Single Length Zone Master Key.
@@ -19,8 +19,9 @@ func (slzmk *SingleLengthZMK) EncryptKey(plainkey []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	cipherkey := make([]byte, des.BlockSize)
-	block.Encrypt(cipherkey, plainkey)
+	encrypter := NewECBEncrypter(block)
+	cipherkey := make([]byte, len(plainkey))
+	encrypter.CryptBlocks(cipherkey, plainkey)
 	return cipherkey, nil
 }
 
@@ -29,17 +30,18 @@ func (slzmk *SingleLengthZMK) DecryptKey(cipherkey []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	plainkey := make([]byte, des.BlockSize)
-	block.Decrypt(plainkey, cipherkey)
-	return plainkey, nil
+	decrypter := NewECBDecrypter(block)
+	clearkey := make([]byte, len(cipherkey))
+	decrypter.CryptBlocks(clearkey, cipherkey)
+	return clearkey, nil
 }
 
 func (slzmk *SingleLengthZMK) KeyCheckValue() (string, error) {
-	encrypted, err := slzmk.EncryptKey(make([]byte, des.BlockSize))
+	cipherkey, err := slzmk.EncryptKey(make([]byte, des.BlockSize))
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%02X", encrypted), nil
+	return fmt.Sprintf("%02X", cipherkey), nil
 }
 
 // DoubleLengthZMK represents a Double Length Zone Master Key.
@@ -55,66 +57,30 @@ func (dlzmk *DoubleLengthZMK) tripleDESKey() []byte {
 	return tripleDESKey
 }
 
-func (dlzmk *DoubleLengthZMK) EncryptHalf(clearkey []byte) ([]byte, error) {
-	if len(clearkey) != des.BlockSize {
-		return nil, fmt.Errorf("invalid key length: %d", len(clearkey))
-	}
+func (dlzmk *DoubleLengthZMK) EncryptKey(clearkey []byte) ([]byte, error) {
 	block, err := des.NewTripleDESCipher(dlzmk.tripleDESKey())
 	if err != nil {
 		return nil, err
 	}
-	cipherkey := make([]byte, des.BlockSize)
-	block.Encrypt(cipherkey, clearkey)
+	encrypter := NewECBEncrypter(block)
+	cipherkey := make([]byte, len(clearkey))
+	encrypter.CryptBlocks(cipherkey, clearkey)
 	return cipherkey, nil
 }
 
-func (dlzmk *DoubleLengthZMK) DecryptHalf(cipherkey []byte) ([]byte, error) {
-	if len(cipherkey) != des.BlockSize {
-		return nil, fmt.Errorf("invalid key length: %d", len(cipherkey))
-	}
+func (dlzmk *DoubleLengthZMK) DecryptKey(cipherkey []byte) ([]byte, error) {
 	block, err := des.NewTripleDESCipher(dlzmk.tripleDESKey())
 	if err != nil {
 		return nil, err
 	}
-	plainkey := make([]byte, des.BlockSize)
-	block.Decrypt(plainkey, cipherkey)
-	return plainkey, nil
-}
-
-func (dlzmk *DoubleLengthZMK) EncryptKey(clearkey []byte) ([]byte, error) {
-	if len(clearkey) != des.BlockSize*2 {
-		return nil, fmt.Errorf("invalid key length: %d", len(clearkey))
-	}
-	clearleft, clearright := clearkey[:des.BlockSize], clearkey[des.BlockSize:]
-	cipherleft, err := dlzmk.EncryptHalf(clearleft)
-	if err != nil {
-		return nil, err
-	}
-	cipherright, err := dlzmk.EncryptHalf(clearright)
-	if err != nil {
-		return nil, err
-	}
-	return append(cipherleft, cipherright...), nil
-}
-
-func (dlzmk *DoubleLengthZMK) DecryptKey(cipherkey []byte) ([]byte, error) {
-	if len(cipherkey) != des.BlockSize*2 {
-		return nil, fmt.Errorf("invalid key length: %d", len(cipherkey))
-	}
-	cipherleft, cipherright := cipherkey[:des.BlockSize], cipherkey[des.BlockSize:]
-	clearleft, err := dlzmk.DecryptHalf(cipherleft)
-	if err != nil {
-		return nil, err
-	}
-	clearright, err := dlzmk.DecryptHalf(cipherright)
-	if err != nil {
-		return nil, err
-	}
-	return append(clearleft, clearright...), nil
+	decrypter := NewECBDecrypter(block)
+	clearkey := make([]byte, len(cipherkey))
+	decrypter.CryptBlocks(clearkey, cipherkey)
+	return clearkey, nil
 }
 
 func (dlzmk *DoubleLengthZMK) KeyCheckValue() (string, error) {
-	cipherkey, err := dlzmk.EncryptHalf(make([]byte, des.BlockSize))
+	cipherkey, err := dlzmk.EncryptKey(make([]byte, des.BlockSize))
 	if err != nil {
 		return "", err
 	}
