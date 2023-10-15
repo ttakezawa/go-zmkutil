@@ -2,6 +2,8 @@ package zmkutil
 
 import "crypto/cipher"
 
+var _ cipher.BlockMode = (*ecbEncrypter)(nil)
+
 type ecbEncrypter struct {
 	b cipher.Block
 }
@@ -10,9 +12,7 @@ func NewECBEncrypter(b cipher.Block) cipher.BlockMode {
 	return &ecbEncrypter{b}
 }
 
-func (x *ecbEncrypter) BlockSize() int {
-	return x.b.BlockSize()
-}
+func (x *ecbEncrypter) BlockSize() int { return x.b.BlockSize() }
 
 func (x *ecbEncrypter) CryptBlocks(dst, src []byte) {
 	if len(src)%x.BlockSize() != 0 {
@@ -27,6 +27,8 @@ func (x *ecbEncrypter) CryptBlocks(dst, src []byte) {
 	}
 }
 
+var _ cipher.BlockMode = (*ecbDecrypter)(nil)
+
 type ecbDecrypter struct {
 	b cipher.Block
 }
@@ -35,9 +37,7 @@ func NewECBDecrypter(b cipher.Block) cipher.BlockMode {
 	return &ecbDecrypter{b}
 }
 
-func (x *ecbDecrypter) BlockSize() int {
-	return x.b.BlockSize()
-}
+func (x *ecbDecrypter) BlockSize() int { return x.b.BlockSize() }
 
 func (x *ecbDecrypter) CryptBlocks(dst, src []byte) {
 	if len(src)%x.BlockSize() != 0 {
