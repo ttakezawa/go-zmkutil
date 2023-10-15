@@ -47,18 +47,8 @@ func (slzmk *SingleLengthZMK) KeyCheckValue() (string, error) {
 // DoubleLengthZMK represents a Double Length Zone Master Key.
 type DoubleLengthZMK [DoubleLengthZMKSize]byte
 
-func (dlzmk *DoubleLengthZMK) tripleDESKey() []byte {
-	if len(dlzmk) != des.BlockSize*2 {
-		panic(fmt.Errorf("invalid key length: %d", len(dlzmk)))
-	}
-	var tripleDESKey []byte
-	tripleDESKey = append(tripleDESKey, dlzmk[:16]...)
-	tripleDESKey = append(tripleDESKey, dlzmk[:8]...)
-	return tripleDESKey
-}
-
 func (dlzmk *DoubleLengthZMK) EncryptKey(clearkey []byte) ([]byte, error) {
-	block, err := des.NewTripleDESCipher(dlzmk.tripleDESKey())
+	block, err := NewEDE2Cipher(dlzmk[:])
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +59,7 @@ func (dlzmk *DoubleLengthZMK) EncryptKey(clearkey []byte) ([]byte, error) {
 }
 
 func (dlzmk *DoubleLengthZMK) DecryptKey(cipherkey []byte) ([]byte, error) {
-	block, err := des.NewTripleDESCipher(dlzmk.tripleDESKey())
+	block, err := NewEDE2Cipher(dlzmk[:])
 	if err != nil {
 		return nil, err
 	}
