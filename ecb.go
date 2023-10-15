@@ -8,6 +8,7 @@ type ecbEncrypter struct {
 	b cipher.Block
 }
 
+// NewECBEncrypter returns a BlockMode which encrypts in electronic code book mode, using the given Block.
 func NewECBEncrypter(b cipher.Block) cipher.BlockMode {
 	return &ecbEncrypter{b}
 }
@@ -33,6 +34,7 @@ type ecbDecrypter struct {
 	b cipher.Block
 }
 
+// NewECBDecrypter returns a BlockMode which decrypts in electronic code book mode, using the given Block.
 func NewECBDecrypter(b cipher.Block) cipher.BlockMode {
 	return &ecbDecrypter{b}
 }
